@@ -5,11 +5,31 @@ import (
 )
 
 func main() {
+	var arr1 = [5]int{1, 2, 3, 4, 5}
+	var s1 = arr1[2:4]
+
+	fmt.Println("s1:", s1)
+	fmt.Println("Capcity:", cap(s1), "Length:", len(s1))
+
+	// s1 = append(s1, s1...)
+	s1 = append(s1, []int{2, 3}...)
+
+	fmt.Println("s1:", s1)
+	fmt.Println("Capcity:", cap(s1), "Length:", len(s1))
+
+	// var x = make([]int, 2, 5)
+	// fmt.Println("Capcity:", cap(x), "Length:", len(x))
+
+	// x[0] = 1
+	// x[1] = 2
+	// x[2] = 3
+	// fmt.Println("Capcity:", cap(x), "Length:", len(x))
+
 	// fmt.Println("123")
 	// testArray()
 	// testSlice()
 	// appendFunc()
-	testMap()
+	// testMap()
 
 }
 
