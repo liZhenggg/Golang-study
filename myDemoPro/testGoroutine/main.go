@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	// "math/rand"
-	// "time"
+	"math/rand"
+	"time"
 )
 
 func get_sum_of_divisible(num int, divider int, resultChan chan int) {
@@ -26,20 +26,12 @@ func testRoutine(n int) {
 func testRoutine2(n int, tag string) {
 	for i := 0; i < n; i++ {
 		fmt.Println(tag, i)
-		// tick := time.Duration(rand.Intn(100))
-		// time.Sleep(time.Millisecond * tick)
+		tick := time.Duration(rand.Intn(100))
+		time.Sleep(time.Millisecond * tick)
 	}
 }
 
 func main() {
-	//测试routine
-	// go testRoutine(10)
-
-	go testRoutine2(20, "go_a >>>>>>")
-	go testRoutine2(20, "go_b ")
-
-	var input string
-	fmt.Scanln(&input)
 
 	// LIMIT := 10
 	// resultChan := make(chan int, 3)
@@ -59,4 +51,13 @@ func main() {
 
 	// fmt.Println(sum)
 	// fmt.Println(t_end.Sub(t_start))
+
+	//// 测试routine
+	// go testRoutine(10)
+
+	go testRoutine2(10, "go_a >>>>>>")
+	go testRoutine2(10, "go_b ")
+
+	var input string
+	fmt.Scanln(&input)
 }
