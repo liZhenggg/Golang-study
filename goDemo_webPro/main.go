@@ -7,8 +7,11 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
+	// utils "go/main/utils"
 )
 
 func sayHelloName(w http.ResponseWriter, r *http.Request) {
@@ -105,41 +108,138 @@ func userInfoEdit(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 
 	nickname := r.Form["nickname"]
+	fmt.Println("nickname:", nickname)
+
+	//// 判断中文方式一：正则表达式
+	if m, _ := regexp.MatchString("^\\p{Han}+$", r.Form.Get("name_CN")); !m {
+		fmt.Println("中文名输入有误！")
+	} else {
+		fmt.Println("中文名输入正确！")
+	}
 	name_CN := r.Form["name_CN"]
+	fmt.Println("name_CN:", name_CN)
+
+	// 判断中文方式2：使用 unicode 包提供的 func Is(rangeTab *RangeTable, r rune) bool
+	// todo...
+
+	//// 判断英文
+	if m, _ := regexp.MatchString("^[a-zA-Z]+$", r.Form.Get("name_EN")); !m {
+		fmt.Println("英文名输入有误！")
+	} else {
+		fmt.Println("英文名输入正确！")
+	}
 	name_EN := r.Form["name_EN"]
-	age := r.Form["age"]
+	fmt.Println("name_EN:", name_EN)
 
+	//// 判断单选框
 	genderSlice := []string{"1", "0", "2"}
-
 	var gender string
-	// var gender = make([]string, 3)
 	for _, v := range genderSlice {
 		if v == r.Form.Get("gender") {
-			fmt.Println("gender fetched:", v)
+			// fmt.Println("gender fetched:", v)
 			gender = v
-			// gender := append(gender, v)
 		}
 	}
 	fmt.Println("gender:", gender)
 
-	// idcard := r.Form["idcard"]
-	// email := r.Form["email"]
-	// nationality := r.Form["nationality"]
-	// hobby := r.Form["hobby"]
-	// birthday := r.Form["birthday"]
+	//// 判断数字--方式1
+	getint, err := strconv.Atoi(r.Form.Get("age"))
+	if err != nil {
+		//转数字出错，输入不是正确的数字，getint将被赋值为0
+		fmt.Println("输入年龄格式不正确")
+	} else if getint > 100 || getint < 1 {
+		fmt.Println("年龄范围有误")
+		// return false
+	} else {
+		fmt.Println("年龄输入正确！")
+	}
 
-	if len(nickname[0]) == 0 {
-		fmt.Println("昵称不能为空")
+	//判断数字方式2--正则表达式
+	if m, _ := regexp.MatchString("^[0-9]+$", r.Form.Get("age")); !m {
+		fmt.Println("年龄输入有误!！")
+	} else {
+		fmt.Println("年龄输入正确！！")
 	}
-	if len(name_CN[0]) == 0 {
-		fmt.Println("中文名不能为空")
+	age := r.Form["age"]
+	fmt.Println("age:", age)
+
+	//// 判断Email
+	if m, _ := regexp.MatchString(`^([\w\.\_]{2,10})@(\w{1,}).([a-z]{2,4})$`, r.Form.Get("email")); !m {
+		fmt.Println("email输入有误！")
+	} else {
+		fmt.Println("email输入正确！")
 	}
-	if len(name_EN[0]) == 0 {
-		fmt.Println("英文名不能为空")
+	email := r.Form.Get("email")
+	fmt.Println("email:", email)
+
+	//// 判断手机号码
+	if m, _ := regexp.MatchString(`^(1[3|4|5|8][0-9]\d{4,8})$`, r.Form.Get("mobile")); !m {
+		fmt.Println("手机号码输入有误！")
+	} else {
+		fmt.Println("手机号码输入正确！")
 	}
-	if len(age[0]) == 0 {
-		fmt.Println("年龄不能为空")
+	mobile := r.Form.Get("mobile")
+	fmt.Println("mobile:", mobile)
+
+	//// 验证下拉菜单
+	var nationality string
+	nati_slice := []string{"0", "1", "2", "3", "4"}
+	// nati_slice := []int{0, 1, 2, 3, 4}
+	v := r.Form.Get("nationality")
+	for _, item := range nati_slice {
+		if item == v {
+			nationality = v
+		}
 	}
+	fmt.Println("nationality:", nationality)
+
+	////验证复选框
+	// hobby_slice := []string{"1", "2", "3", "4", "5", "6", "7", "8", "9"}
+	// hobby := Slice_diff(r.Form["interest"], hobby_slice)
+	// if hobby == nil {
+	// 	fmt.Println("爱好为空")
+	// } else {
+	// 	fmt.Println("hobby:", hobby)
+	// }
+
+	////验证身份证号码
+	//验证15位身份证，15位的是全部数字
+	if m, _ := regexp.MatchString(`^(\d{15})$`, r.Form.Get("idcard")); !m {
+		fmt.Println("不是有效的15位身份证号码！")
+	} else {
+		fmt.Println("是有效的15位身份证号码！")
+	}
+	//验证18位身份证，18位前17位为数字，最后一位是校验位，可能为数字或字符X。
+	if m, _ := regexp.MatchString(`^(\d{17})([0-9]|X)$`, r.Form.Get("idcard")); !m {
+		fmt.Println("不是有效的18位身份证号码！")
+	} else {
+		fmt.Println("是有效的18位身份证号码！")
+	}
+	idcard := r.Form.Get("idcard")
+	fmt.Println("idcard:", idcard)
+
+	////验证日期
+	birthday, err := time.Parse("2006-01-02 15:04:05", r.Form.Get("birthday"))
+	if err == nil {
+		fmt.Println("birthday:", birthday)
+	} else {
+		fmt.Println("日期转换错误！")
+		fmt.Println("err:", err)
+	}
+
+	////
+	// if len(nickname[0]) == 0 {
+	// 	fmt.Println("昵称不能为空")
+	// }
+	// if len(name_CN[0]) == 0 {
+	// 	fmt.Println("中文名不能为空")
+	// }
+	// if len(name_EN[0]) == 0 {
+	// 	fmt.Println("英文名不能为空")
+	// }
+	// if len(age[0]) == 0 {
+	// 	fmt.Println("年龄不能为空")
+	// }
 	// if len(gender[0]) == 0 {
 	// 	fmt.Println("性别不能为空")
 	// }
@@ -169,4 +269,22 @@ func main() {
 		log.Fatal("ListenAndServe:", err)
 	}
 
+}
+
+func Slice_diff(slice1, slice2 []interface{}) (diffslice []interface{}) {
+	for _, v := range slice1 {
+		if !In_slice(v, slice2) {
+			diffslice = append(diffslice, v)
+		}
+	}
+	return
+}
+
+func In_slice(val interface{}, slice []interface{}) bool {
+	for _, v := range slice {
+		if v == val {
+			return true
+		}
+	}
+	return false
 }

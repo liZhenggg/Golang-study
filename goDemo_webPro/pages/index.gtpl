@@ -14,17 +14,17 @@
 			
 			<tr>
 				<td width="100px">中文名*</td>
-				<td width="300px"><input type="text" name="name_CN" value="" requied="true" /></td>
+				<td width="300px"><input type="text" name="name_CN" value="大大" requied="true" /></td>
 			</tr>
 			
 			<tr>
 				<td width="100px">英文名*</td>
-				<td width="300px"><input type="text" name="name_EN" value="" requied="true" /></td>
+				<td width="300px"><input type="text" name="name_EN" value="dada" requied="true" /></td>
 			</tr>
 			
 			<tr>
 				<td width="100px">年龄*</td>
-				<td width="300px"><input type="number" name="age" value="" requied="true" /></td>
+				<td width="300px"><input type="text" name="age" value="33" requied="true" /></td>
 			</tr>
 			
 			<tr>
@@ -44,6 +44,11 @@
 			<tr>
 				<td width="100px">电子邮件</td>
 				<td width="300px"><input type="text" name="email" /></td>
+			</tr>
+			
+			<tr>
+				<td width="100px">手机号码</td>
+				<td width="300px"><input type="text" name="mobile" /></td>
 			</tr>
 	
 			<tr>
