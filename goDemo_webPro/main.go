@@ -2,16 +2,23 @@
 package main
 
 import (
+	"bytes"
+	"crypto/md5"
 	"fmt"
 	"html/template"
+	"io"
+	"io/ioutil"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"net/url"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"go/main/utils"
 	"time"
-	// utils "go/main/utils"
 )
 
 func sayHelloName(w http.ResponseWriter, r *http.Request) {
@@ -97,6 +104,7 @@ type sysUser struct {
 	gender      int
 	idcard      string
 	email       string
+	mobile      string
 	nationality int
 	hobby       []int
 	birthday    time.Time
@@ -107,8 +115,15 @@ func userInfoEdit(w http.ResponseWriter, r *http.Request) {
 
 	r.ParseForm()
 
-	nickname := r.Form["nickname"]
+	//// 防XSS攻击，处理特殊字符
+	// nickname := r.Form["nickname"]
+	nickname := template.HTMLEscapeString(r.Form.Get("nickname"))
 	fmt.Println("nickname:", nickname)
+	//输出信息到客户端
+	template.HTMLEscape(w, []byte(r.Form.Get("nickname")))
+
+	// t, err := template.New("foo").Parse(`{{define "T"}}Hello, {{.}}!{{end}}`)
+	// err = t.ExecuteTemplate(out, "T", "<scirpt>alert('you have been pwned')</scirpt>")
 
 	//// 判断中文方式一：正则表达式
 	if m, _ := regexp.MatchString("^\\p{Han}+$", r.Form.Get("name_CN")); !m {
@@ -140,7 +155,11 @@ func userInfoEdit(w http.ResponseWriter, r *http.Request) {
 			gender = v
 		}
 	}
-	fmt.Println("gender:", gender)
+	if gender == "" {
+		fmt.Println("gender 未选择!")
+	} else {
+		fmt.Println("gender:", gender)
+	}
 
 	//// 判断数字--方式1
 	getint, err := strconv.Atoi(r.Form.Get("age"))
@@ -191,29 +210,31 @@ func userInfoEdit(w http.ResponseWriter, r *http.Request) {
 			nationality = v
 		}
 	}
-	fmt.Println("nationality:", nationality)
+
+	if nationality == "0" {
+		fmt.Println("nationality 未选择")
+	} else {
+		fmt.Println("nationality:", nationality)
+	}
 
 	////验证复选框
-	// hobby_slice := []string{"1", "2", "3", "4", "5", "6", "7", "8", "9"}
-	// hobby := Slice_diff(r.Form["interest"], hobby_slice)
-	// if hobby == nil {
-	// 	fmt.Println("爱好为空")
-	// } else {
-	// 	fmt.Println("hobby:", hobby)
-	// }
+	hobby_slice := []string{"1", "2", "3", "4", "5", "6", "7", "8", "9"}
+	hobby := sliceUtils.Slice_diff(r.Form["hobby"], hobby_slice)
+	if hobby == nil {
+		fmt.Println("爱好为空")
+	} else {
+		fmt.Println("hobby:", hobby)
+	}
 
 	////验证身份证号码
-	//验证15位身份证，15位的是全部数字
-	if m, _ := regexp.MatchString(`^(\d{15})$`, r.Form.Get("idcard")); !m {
-		fmt.Println("不是有效的15位身份证号码！")
-	} else {
+	if m, _ := regexp.MatchString(`^(\d{15})$`, r.Form.Get("idcard")); m {
+		//验证15位身份证，15位的是全部数字
 		fmt.Println("是有效的15位身份证号码！")
-	}
-	//验证18位身份证，18位前17位为数字，最后一位是校验位，可能为数字或字符X。
-	if m, _ := regexp.MatchString(`^(\d{17})([0-9]|X)$`, r.Form.Get("idcard")); !m {
-		fmt.Println("不是有效的18位身份证号码！")
-	} else {
+	} else if m, _ := regexp.MatchString(`^(\d{17})([0-9]|X)$`, r.Form.Get("idcard")); m {
+		//验证18位身份证，18位前17位为数字，最后一位是校验位，可能为数字或字符X。
 		fmt.Println("是有效的18位身份证号码！")
+	} else {
+		fmt.Println("身份证号码有误！")
 	}
 	idcard := r.Form.Get("idcard")
 	fmt.Println("idcard:", idcard)
@@ -260,31 +281,94 @@ func userInfoEdit(w http.ResponseWriter, r *http.Request) {
 	// }
 }
 
+func upload(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("method:", r.Method) //获取请求的方法
+	if r.Method == "GET" {
+		crutime := time.Now().Unix()
+		h := md5.New()
+		io.WriteString(h, strconv.FormatInt(crutime, 10))
+		token := fmt.Sprintf("%x", h.Sum(nil))
+
+		t, _ := template.ParseFiles("pages/upload.gtpl")
+		t.Execute(w, token)
+	} else {
+		r.ParseMultipartForm(32 << 20)
+		//获取文件名 uploadfile
+		file, handler, err := r.FormFile("uploadfile")
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		defer file.Close()
+		fmt.Fprintf(w, "%v", handler.Header)
+		//指定存放文件位置
+		f, err := os.OpenFile("./headImages/"+handler.Filename, os.O_WRONLY|os.O_CREATE, 0666) // 此处假设当前目录下已存在test目录
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		defer f.Close()
+		io.Copy(f, file)
+	}
+}
+
+//上传文件
+func postFile(filename string, targetUrl string) error {
+	fmt.Println(">>>>postFile  ")
+	bodyBuf := &bytes.Buffer{}
+	bodyWriter := multipart.NewWriter(bodyBuf)
+
+	// 关键操作
+	fileWriter, err := bodyWriter.CreateFormFile("uploadfile", filename)
+	if err != nil {
+		fmt.Println("error wirting to buffer")
+		return err
+	}
+
+	// 打开文件句柄操作
+	fh, err := os.Open(filename)
+	if err != nil {
+		fmt.Println("error opening file")
+		return err
+	}
+	defer fh.Close()
+
+	// iocopy
+	_, err = io.Copy(fileWriter, fh)
+	if err != nil {
+		return err
+	}
+
+	contentType := bodyWriter.FormDataContentType()
+	bodyWriter.Close()
+
+	resp, err := http.Post(targetUrl, contentType, bodyBuf)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	resp_body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	fmt.Println(resp.Status)
+	fmt.Println(string(resp_body))
+	return nil
+}
+
 func main() {
+
+	target_url := "http://localhost:9000/upload"
+	filename := "./test.jpg"
+	postFile(filename, target_url)
+
 	// http.HandleFunc("/", sayHelloName)
 	http.HandleFunc("/login", login)
 	http.HandleFunc("/userInfoEdit", userInfoEdit)
+	http.HandleFunc("/upload", upload)
 	err := http.ListenAndServe(":9000", nil)
 	if err != nil {
 		log.Fatal("ListenAndServe:", err)
 	}
 
-}
-
-func Slice_diff(slice1, slice2 []interface{}) (diffslice []interface{}) {
-	for _, v := range slice1 {
-		if !In_slice(v, slice2) {
-			diffslice = append(diffslice, v)
-		}
-	}
-	return
-}
-
-func In_slice(val interface{}, slice []interface{}) bool {
-	for _, v := range slice {
-		if v == val {
-			return true
-		}
-	}
-	return false
 }

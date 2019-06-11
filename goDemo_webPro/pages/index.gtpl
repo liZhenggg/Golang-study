@@ -5,7 +5,7 @@
 <body>
 <div>
 	<h3>填写个人信息</h3>
-	<form action="/userInfoEdit" method="POST">
+	<form enctype="multipart/form-data" action="/userInfoEdit" method="POST">
 		<table>
 			<tr>
 				<td width="100px">昵称*</td>
@@ -86,6 +86,7 @@
 		</table>
 		<input type="submit" value="提交" />
 	</form>
+	<a href="/upload">修改头像</a>
 </div>
 </body>
 </html>
